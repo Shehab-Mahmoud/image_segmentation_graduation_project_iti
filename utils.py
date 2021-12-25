@@ -156,6 +156,7 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
     returns :
         pred_vis : ndarray - predicted RGB mask image
         image : ndarray - input image to the model
+        vis : ndarray - masked image weighted sum
         
     '''
     
@@ -183,5 +184,5 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
         ax[2].title.set_text('masked image')
     
     
-    return pred_vis,image
+    return pred_vis,image,vis
         
