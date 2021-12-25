@@ -146,7 +146,7 @@ def validationGenerator(val_path,image_folder,mask_folder,aug_dict_img,aug_dict_
         
         
         
-def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,alpha = 0.7):
+def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,alpha = 0.7,plot = False):
     '''
     Predicts image mask and make overlayed mask for visaualization
     inputs :
@@ -170,16 +170,17 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
 
     vis = cv2.addWeighted(image,1.,pred_vis,alpha,0, dtype = cv2.CV_32F)/255
     
-    fig,ax = plt.subplots(1,3)
-    fig.set_figwidth(20)
-    fig.set_figheight(5)
-    ax[0].imshow(image)
-    ax[1].imshow(pred_vis)
-    ax[2].imshow(vis)
-    
-    ax[0].title.set_text('Image')
-    ax[1].title.set_text('Predicted mask')
-    ax[2].title.set_text('masked image')
+    if plot :    
+        fig,ax = plt.subplots(1,3)
+        fig.set_figwidth(20)
+        fig.set_figheight(5)
+        ax[0].imshow(image)
+        ax[1].imshow(pred_vis)
+        ax[2].imshow(vis)
+        
+        ax[0].title.set_text('Image')
+        ax[1].title.set_text('Predicted mask')
+        ax[2].title.set_text('masked image')
     
     
     return pred_vis,image
