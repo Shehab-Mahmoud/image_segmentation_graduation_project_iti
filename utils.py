@@ -14,6 +14,7 @@ PATH = "D:\iti\SelfStudy\Semantic_segmentation\Semantic_Segmentation_Models\CamV
 labels = pd.read_csv(os.path.join(PATH ,'class_dict.csv'), index_col =0)
 id2code={i:tuple(labels.loc[cl, :]) for i,cl in enumerate(labels.index)}
 
+
 # changing mask
 def preprocess_mask(rgb_image, colormap = id2code):
     '''Function to one hot encode RGB mask labels
@@ -30,6 +31,7 @@ def preprocess_mask(rgb_image, colormap = id2code):
     return encoded_image
 
 
+
 def onehot_to_rgb(onehot, colormap = id2code):
     '''Function to decode encoded mask labels
         Inputs: 
@@ -42,6 +44,7 @@ def onehot_to_rgb(onehot, colormap = id2code):
     for k in colormap.keys():
         output[single_layer==k] = colormap[k]
     return np.uint8(output)
+
 
 
 def trainGenerator(train_path,image_folder,mask_folder,aug_dict_img,aug_dict_msk,batch_size,image_color_mode = "rgb",
@@ -186,3 +189,113 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
     
     return pred_vis,image,vis
         
+        
+        
+def get_predictions_arr(images_path,model,image_size = (256,256),n_classes = 32,img_weight = 0.7,mask_weight = 0.3):
+    '''
+    Creates rgb and gbr predictions for sequence of images in a given folder
+    inputs :
+        images_path :string -  path to images folder
+        model : Tensorflow model to predict
+        image_size : tuple - image size default: (256,256)
+        n_classes : int - number of classes
+        img_weight : float - between 0-1 weight of image for the weighted sum
+        mask_weight : fload - between 0-1 weight of mask for weighted sum
+    return:
+        bgr_list : list - contains gbr blended predictions
+        rgb_list : list - contains rgb blended predictions
+    
+    Note : 
+        image_weight + mask_weight must  = 1
+    '''
+    # initialize empty lists
+    gbr_list = []
+    rgb_list = []
+    
+    # loop over images in dir
+    for filename in os.listdir(images_path):
+        # read image
+        image = cv2.imread(os.path.join(images_path,filename))
+        # resized GBR image
+        resized_im = cv2.resize(image,image_size,interpolation  = cv2.INTER_AREA)
+        # convert to RGB for predictions
+        rgb = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        # resized rgb image
+        resized_rgb = cv2.resize(rgb,image_size,interpolation  = cv2.INTER_AREA)
+        
+        # Run infrence with model
+        pred = model.predict(np.expand_dims(resized_rgb,0)/255)
+        pred = np.reshape(pred,(image_size[0],image_size[1],n_classes))
+        # convert prediction to image
+        pred_vis = onehot_to_rgb(pred,id2code)
+        #pred_vis = np.squeeze(pred)
+        #pred_vis = np.array(pred_vis,dtype = np.uint8)
+        
+        # convert predicted image to BGR
+        bgr = cv2.cvtColor(pred_vis,cv2.COLOR_RGB2BGR)
+        # Get blended result
+        vis_bgr = cv2.addWeighted(resized_im,img_weight,bgr,mask_weight,0)
+        
+        # append to gbr list
+        gbr_list.append(vis_bgr)
+        
+        # convert bgr blend to RGB
+        vis_rgb = cv2.cvtColor(vis_bgr,cv2.COLOR_BGR2RGB)
+        # append to RGB list
+        rgb_list.append(vis_rgb)
+        
+    return gbr_list,rgb_list
+        
+
+
+def createVidePrediction(model,images_folder,output_file,frame_size = (256,256),fps=7,
+                          n_classes = 32,img_weight = 0.7,mask_weight = 0.3):
+    '''
+    Creates vedio prediction
+    Inputs :
+        model : Tensorflow model
+        images_folder : String - Path to input images folder
+        ouput_file : String - output file path/name
+        frame_size : tuple -  frame size of output video , default : (256,256)
+        fps : int - frames per second , default : 7
+        n_classes : int - number of classes
+        img_weight : float - between 0-1 weight of image for the weighted sum
+        mask_weight : fload - between 0-1 weight of mask for weighted sum
+        
+    Note :
+        image_weight + mask_weight must  = 1
+    '''
+    bgr,rgb = get_predictions_arr(images_path=images_folder,model=model,
+                                  image_size = frame_size,n_classes = n_classes,
+                                  img_weight = img_weight,mask_weight = mask_weight)
+    
+    out = cv2.VideoWriter(output_file,cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
+    for im in bgr:
+        out.write(im)
+
+    out.release()
+
+
+
+def createGifPrediction(model,images_folder,output_file,frame_size = (256,256),fps=7,
+                          n_classes = 32,img_weight = 0.7,mask_weight = 0.3):
+    '''
+    Creates Gif prediction
+    Inputs :
+        model : Tensorflow model
+        images_folder : String - Path to input images folder
+        ouput_file : String - output file path/name
+        frame_size : tuple -  frame size of output video , default : (256,256)
+        fps : int - frames per second , default : 7
+        n_classes : int - number of classes
+        img_weight : float - between 0-1 weight of image for the weighted sum
+        mask_weight : fload - between 0-1 weight of mask for weighted sum
+        
+    Note :
+        image_weight + mask_weight must  = 1
+    '''
+    bgr,rgb = get_predictions_arr(images_path=images_folder,model=model,
+                                  image_size = frame_size,n_classes = n_classes,
+                                  img_weight = img_weight,mask_weight = mask_weight)
+    
+    imageio.mimsave(output_file,rgb,fps = fps)
