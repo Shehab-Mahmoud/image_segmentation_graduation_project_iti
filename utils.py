@@ -10,8 +10,10 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import os
 
 
-PATH = "D:\iti\grad\cityscapes_large"
-labels = pd.read_csv(os.path.join(PATH ,'cityscapes_dict.csv'), index_col =0)
+PATH = "city_scapes"
+#lablels_path = os.path.join(PATH ,'cityscapes_dict.csv')
+lablels_path = 'cityscapes_dict.csv'
+labels = pd.read_csv(lablels_path, index_col =0)
 id2code={i:tuple(labels.loc[cl, :]) for i,cl in enumerate(labels.index)}
 
 
@@ -47,7 +49,7 @@ def onehot_to_rgb(onehot, colormap = id2code):
 
 
 
-def trainGenerator(train_path,image_folder,mask_folder,aug_dict_img,aug_dict_msk,batch_size,image_color_mode = "rgb",
+def trainGenerator(train_path,image_folder,mask_folder,aug_dict_img={},aug_dict_msk={},batch_size=4,image_color_mode = "rgb",
                     mask_color_mode = "rgb",target_size = (512,512),seed = 1):
     '''
     can generate image and mask at the same time
@@ -99,7 +101,7 @@ def trainGenerator(train_path,image_folder,mask_folder,aug_dict_img,aug_dict_msk
         
         
         
-def validationGenerator(val_path,image_folder,mask_folder,aug_dict_img,aug_dict_msk,batch_size,image_color_mode = "rgb",
+def validationGenerator(val_path,image_folder,mask_folder,aug_dict_img= {},aug_dict_msk={},batch_size=4,image_color_mode = "rgb",
                     mask_color_mode = "rgb",target_size = (512,512),seed = 1):
     '''
     can generate image and mask at the same time
@@ -157,8 +159,9 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
         alpha : alpha value for mask overlay
         
     returns :
-        pred_vis : ndarray - predicted RGB mask image
         image : ndarray - input image to the model
+        pred :  ndarray - predicted RGB mask image
+        pred_1h : ndarray - predicted encoding
         vis : ndarray - masked image weighted sum
         
     '''
@@ -168,18 +171,19 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
     image = cv2.resize(image,image_size[:-1],interpolation = cv2.INTER_AREA)
     
     pred_1h = model.predict(np.expand_dims(image,0)/255)
-    pred_1h = np.reshape(pred_1h,(image_size[0],image_size[1],n_classes))
+    #pred_1h = np.reshape(pred_1h,(image_size[0],image_size[1],n_classes))
+    pred_1h = np.squeeze(pred_1h)
     pred = onehot_to_rgb(pred_1h,id2code)
     pred_vis = np.reshape(pred,image_size)
-
-    vis = cv2.addWeighted(image,1.,pred_vis,alpha,0, dtype = cv2.CV_32F)/255
+    print(pred.shape)
+    vis = cv2.addWeighted(image,1.,pred,alpha,0, dtype = cv2.CV_32F)/255
     
     if plot :    
         fig,ax = plt.subplots(1,3)
         fig.set_figwidth(20)
         fig.set_figheight(5)
         ax[0].imshow(image)
-        ax[1].imshow(pred_vis)
+        ax[1].imshow(pred)
         ax[2].imshow(vis)
         
         ax[0].title.set_text('Image')
@@ -187,7 +191,7 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
         ax[2].title.set_text('masked image')
     
     
-    return pred_vis,image,vis,pred_1h
+    return image,pred,pred_1h,vis
         
         
         
@@ -299,3 +303,6 @@ def createGifPrediction(model,images_folder,output_file,frame_size = (256,256),f
                                   img_weight = img_weight,mask_weight = mask_weight)
     
     imageio.mimsave(output_file,rgb,fps = fps)
+    
+    
+ 
