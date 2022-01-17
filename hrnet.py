@@ -148,7 +148,7 @@ def block_m_l(input_layer,filters,downsample=True):
 
 
 
-def build_hrnet(input_shape = (512,512,3),weights = None):
+def build_hrnet(input_shape = (512,512,3),n_classes=30,weights = None):
     '''
     Builds Hrnet
     Inputs :
@@ -239,7 +239,7 @@ def build_hrnet(input_shape = (512,512,3),weights = None):
     output_3=upscale(out_18,32,target_size=256,batch_norm = True,activation_fun = False)   #medium
     out_f=concatenate([output_1, output_2,output_3,out_14], axis=-1)
 
-    final_out=upscale(out_f,filters=32,target_size=512,batch_norm = True,activation_fun = False)
+    final_out=upscale(out_f,filters=n_classes,target_size=512,batch_norm = True,activation_fun = False)
     output_class = Activation('softmax', name='Classification')(final_out)
     model=Model(inputs=input_,outputs=output_class)
     

@@ -10,8 +10,8 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import os
 
 
-PATH = "D:\iti\SelfStudy\Semantic_segmentation\Semantic_Segmentation_Models\CamVid"
-labels = pd.read_csv(os.path.join(PATH ,'class_dict.csv'), index_col =0)
+PATH = "D:\iti\grad\cityscapes_large"
+labels = pd.read_csv(os.path.join(PATH ,'cityscapes_dict.csv'), index_col =0)
 id2code={i:tuple(labels.loc[cl, :]) for i,cl in enumerate(labels.index)}
 
 
@@ -167,9 +167,9 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
     image = cv2.cvtColor(image , cv2.COLOR_BGR2RGB)
     image = cv2.resize(image,image_size[:-1],interpolation = cv2.INTER_AREA)
     
-    pred = model.predict(np.expand_dims(image,0)/255)
-    pred = np.reshape(pred,(image_size[0],image_size[1],n_classes))
-    pred = onehot_to_rgb(pred,id2code)
+    pred_1h = model.predict(np.expand_dims(image,0)/255)
+    pred_1h = np.reshape(pred_1h,(image_size[0],image_size[1],n_classes))
+    pred = onehot_to_rgb(pred_1h,id2code)
     pred_vis = np.reshape(pred,image_size)
 
     vis = cv2.addWeighted(image,1.,pred_vis,alpha,0, dtype = cv2.CV_32F)/255
@@ -187,7 +187,7 @@ def predict_visualize(image_path,model,image_size = (256,256,3),n_classes = 32,a
         ax[2].title.set_text('masked image')
     
     
-    return pred_vis,image,vis
+    return pred_vis,image,vis,pred_1h
         
         
         
